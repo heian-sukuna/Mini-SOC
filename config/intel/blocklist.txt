@@ -1,0 +1,11 @@
+# minisoc local threat-intel blocklist.
+# One indicator per line: a bare IP (203.0.113.7) or a CIDR (203.0.113.0/24).
+# Blank lines and lines starting with '#' are ignored.
+#
+# In a real deployment you'd refresh this from a feed (e.g. an OTX/abuse.ch export,
+# a TI platform, or your firewall's denylist). The sample entries below use the
+# documentation/test ranges (RFC 5737) so they never collide with real hosts.
+
+203.0.113.0/24      # TEST-NET-3 — stand-in for a known-bad hosting range
+198.51.100.66       # TEST-NET-2 — a single flagged scanner IP
+45.155.205.0/24     # example "bulletproof" hosting range

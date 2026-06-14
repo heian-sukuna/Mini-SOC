@@ -1,0 +1,24 @@
+# minisoc asset & identity context.
+# Turns bare IPs and usernames into business context, so an alert reads
+# "admin login from an untrusted asset" instead of "172.19.0.1".
+
+# hosts: map an IP or CIDR to a known asset. `trusted: true` marks owned/managed
+# infrastructure; any source that matches no entry is treated as untrusted/external.
+hosts:
+  - cidr: 10.0.0.0/24
+    hostname: corp-workstations
+    trusted: true
+  - cidr: 172.19.0.0/16
+    hostname: soc-lab-net
+    trusted: true
+  - cidr: 192.168.0.0/16
+    hostname: home-lan
+    trusted: true
+
+# identities: map a username to its role, so a privileged account standing out is
+# obvious. Unlisted users get no role (treated as a standard account).
+identities:
+  root: admin
+  administrator: admin
+  alice: developer
+  victim: standard

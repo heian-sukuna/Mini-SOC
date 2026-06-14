@@ -1,0 +1,36 @@
+title: Sudo Privilege Escalation to Root
+id: sudo-privesc-001
+status: experimental
+description: >-
+  Detects a sudo command that escalates to root and runs an interactive shell or a
+  sensitive account/permission-modifying command — a common privilege-escalation or
+  persistence step after an initial foothold.
+references:
+  - https://attack.mitre.org/techniques/T1548/003/
+author: minisoc
+level: high
+logsource:
+  category: authentication
+  product: linux
+  service: sudo
+detection:
+  selection:
+    event.action: sudo_command
+    sudo.target_user: root
+    sudo.command|contains:
+      - /bin/bash
+      - /bin/sh
+      - "su -"
+      - /etc/shadow
+      - /etc/sudoers
+      - "passwd "
+      - "useradd "
+      - "usermod "
+      - "chmod u+s"
+      - "chmod 4755"
+  condition: selection
+falsepositives:
+  - Administrators legitimately opening a root shell or managing users.
+tags:
+  - attack.privilege_escalation
+  - attack.t1548.003

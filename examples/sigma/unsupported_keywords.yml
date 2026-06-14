@@ -1,0 +1,16 @@
+title: Generic Keyword Search (full-text — unsupported)
+id: sigma-keywords
+status: experimental
+description: >
+  Another deliberate skip: a keyword/full-text selection (a bare list of strings matched
+  against the whole event). minisoc matches named fields, not free text, so this is
+  reported as unsupported rather than silently importing a rule that would never fire.
+logsource:
+  product: linux
+detection:
+  keywords:
+    - 'rm -rf /'
+    - 'wget http'
+    - ':(){ :|:& };:'
+  condition: keywords
+level: high

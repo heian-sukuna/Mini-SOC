@@ -1,0 +1,4 @@
+name: dir-traversal
+label: attack
+scenario: dir-traversal
+expects: [directory-traversal-001]

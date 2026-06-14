@@ -1,0 +1,24 @@
+title: SSH Brute Force
+id: ssh-bruteforce-001
+status: experimental
+description: >-
+  Detects 5 or more failed SSH password authentications from a single source IP
+  within a 5 minute window, indicating a brute-force / password-spraying attempt.
+references:
+  - https://attack.mitre.org/techniques/T1110/
+author: minisoc
+level: high
+logsource:
+  category: authentication
+  product: linux
+  service: sshd
+detection:
+  selection:
+    event.action: ssh_login_failed
+  timeframe: 5m
+  condition: selection | count() by source.ip >= 5
+falsepositives:
+  - Misconfigured automation reconnecting with stale credentials.
+tags:
+  - attack.credential_access
+  - attack.t1110

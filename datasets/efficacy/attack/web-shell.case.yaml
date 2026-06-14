@@ -1,0 +1,4 @@
+name: web-shell
+label: attack
+scenario: web-shell
+expects: [web-shell-001]

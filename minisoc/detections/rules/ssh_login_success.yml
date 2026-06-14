@@ -1,0 +1,24 @@
+title: SSH Successful Login
+id: ssh-login-success-001
+status: experimental
+description: >-
+  Matches a successful SSH password authentication. Benign on its own — this rule exists
+  to feed temporal correlations (e.g. success following a brute force) and is suppressed
+  from alerting directly.
+references:
+  - https://attack.mitre.org/techniques/T1078/
+author: minisoc
+level: low
+logsource:
+  category: authentication
+  product: linux
+  service: sshd
+detection:
+  selection:
+    event.action: ssh_login_success
+  condition: selection
+falsepositives:
+  - Every legitimate SSH login; this is why the rule never alerts on its own.
+tags:
+  - attack.initial_access
+  - attack.t1078

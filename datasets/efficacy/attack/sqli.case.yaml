@@ -1,0 +1,4 @@
+name: sqli
+label: attack
+scenario: sqli
+expects: [sqli-attempt-001]

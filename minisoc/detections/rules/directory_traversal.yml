@@ -1,0 +1,28 @@
+title: Directory Traversal Attempt
+id: directory-traversal-001
+status: experimental
+description: >-
+  Detects path-traversal sequences (../, encoded variants) in a web request URL, used to
+  escape the web root and read arbitrary files such as /etc/passwd.
+references:
+  - https://attack.mitre.org/techniques/T1083/
+author: minisoc
+level: medium
+logsource:
+  category: web
+detection:
+  selection:
+    url.original|contains:
+      - "../"
+      - "..\\"
+      - "..%2f"
+      - "..%5c"
+      - "%2e%2e/"
+      - "%2e%2e%2f"
+      - "....//"
+  condition: selection
+falsepositives:
+  - Misconfigured clients sending relative paths; rare in normal traffic.
+tags:
+  - attack.discovery
+  - attack.t1083

@@ -1,0 +1,4 @@
+name: sudo-privesc
+label: attack
+scenario: sudo-privesc
+expects: [sudo-privesc-001]

@@ -1,0 +1,16 @@
+name: normal-firewall
+label: benign
+source: firewall
+year: 2026
+# Routine perimeter traffic the firewall allows: web/DB/SSH connections from a handful of
+# internal hosts, each making only a few connections — nowhere near the port-scan threshold
+# of 15 distinct connections from one source in a minute.
+lines: |
+  Jun 12 08:00:01 gw01 kernel: [1001.1] [UFW ALLOW] IN=eth0 OUT= SRC=10.0.0.20 DST=10.0.0.5 PROTO=TCP SPT=51000 DPT=443 SYN
+  Jun 12 08:00:04 gw01 kernel: [1004.2] [UFW ALLOW] IN=eth0 OUT= SRC=10.0.0.20 DST=10.0.0.5 PROTO=TCP SPT=51002 DPT=443 SYN
+  Jun 12 08:00:31 gw01 kernel: [1031.0] [UFW ALLOW] IN=eth0 OUT= SRC=10.0.0.21 DST=10.0.0.6 PROTO=TCP SPT=44210 DPT=22 SYN
+  Jun 12 08:01:10 gw01 kernel: [1070.5] [UFW ALLOW] IN=eth0 OUT= SRC=10.0.0.22 DST=10.0.0.7 PROTO=TCP SPT=39112 DPT=5432 SYN
+  Jun 12 08:01:55 gw01 kernel: [1115.7] [UFW ALLOW] IN=eth0 OUT= SRC=10.0.0.22 DST=10.0.0.7 PROTO=TCP SPT=39115 DPT=5432 SYN
+  Jun 12 08:03:22 gw01 kernel: [1202.3] [UFW ALLOW] IN=eth0 OUT= SRC=10.0.0.23 DST=10.0.0.5 PROTO=TCP SPT=52880 DPT=80 SYN
+  Jun 12 08:04:48 gw01 kernel: [1288.9] [UFW ALLOW] IN=eth0 OUT= SRC=10.0.0.20 DST=10.0.0.8 PROTO=TCP SPT=51040 DPT=443 SYN
+  Jun 12 08:06:09 gw01 kernel: [1369.1] [UFW BLOCK] IN=eth0 OUT= SRC=203.0.113.200 DST=10.0.0.5 PROTO=TCP SPT=40001 DPT=23 SYN

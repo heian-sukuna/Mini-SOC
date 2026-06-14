@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>minisoc — detection dashboard</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel-2: #1c2330;
+    --border: #2a3240;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --critical: #f85149;
+    --high: #ff7b29;
+    --medium: #d29922;
+    --low: #3fb950;
+    --replay: #bc8cff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 14px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+  header h1 { margin: 0; font-size: 20px; letter-spacing: .5px; }
+  header h1 .soc { color: var(--accent); }
+  header .sub { color: var(--muted); font-size: 13px; }
+  header .live {
+    margin-left: auto; font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--low); box-shadow: 0 0 6px var(--low);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+  main { padding: 24px; max-width: 1480px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+  .grid {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr) 320px;
+    gap: 20px; align-items: start;
+  }
+  .col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 0;
+  }
+  .panel h2 {
+    margin: 0 0 12px; font-size: 12px; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted);
+  }
+  /* Stats */
+  .total { font-size: 40px; font-weight: 700; line-height: 1; }
+  .total small { font-size: 13px; font-weight: 400; color: var(--muted); }
+  .bars { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .bar-row .label { width: 78px; text-transform: capitalize; color: var(--muted); }
+  .bar-track { flex: 1; height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .bar-row .n { width: 24px; text-align: right; font-variant-numeric: tabular-nums; }
+  /* Scenarios */
+  .scenario-btn {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; text-align: left; cursor: pointer;
+    background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 9px 11px; margin-bottom: 8px; font-size: 13px;
+    transition: border-color .15s, background .15s;
+  }
+  .scenario-btn:hover { border-color: var(--accent); background: #20283a; }
+  .scenario-btn:disabled { opacity: .5; cursor: wait; }
+  .scenario-btn .src { color: var(--muted); font-size: 11px; }
+  .controls { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 13px; }
+  .controls label { color: var(--muted); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .controls .spacer { flex: 1; }
+  .ghost-btn {
+    background: transparent; color: var(--muted); cursor: pointer;
+    border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 12px;
+  }
+  .ghost-btn:hover { color: var(--text); border-color: var(--accent); }
+  /* Alerts */
+  .alerts-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .alerts-head h2 { margin: 0; }
+  /* The feed scrolls inside its panel so the page itself stays a fixed height. */
+  #alerts { max-height: calc(100vh - 230px); overflow-y: auto; padding-right: 4px; }
+  #alerts::-webkit-scrollbar { width: 8px; }
+  #alerts::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  #alerts .alert:last-child { margin-bottom: 0; }
+  /* Coverage / risk lists in the narrow side columns can get long; cap + scroll them too. */
+  #coverage-list, #risk-list { max-height: 280px; overflow-y: auto; }
+  .alert {
+    border: 1px solid var(--border); border-left-width: 4px;
+    border-radius: 6px; padding: 11px 14px; margin-bottom: 10px;
+    background: var(--panel-2);
+  }
+  .alert.sev-critical { border-left-color: var(--critical); }
+  .alert.sev-high     { border-left-color: var(--high); }
+  .alert.sev-medium   { border-left-color: var(--medium); }
+  .alert.sev-low      { border-left-color: var(--low); }
+  .alert .row1 { display: flex; align-items: center; gap: 10px; }
+  .alert .title { font-weight: 600; }
+  .badge {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
+    padding: 2px 7px; border-radius: 10px; font-weight: 700;
+  }
+  .badge.sev-critical { background: rgba(248,81,73,.18); color: var(--critical); }
+  .badge.sev-high     { background: rgba(255,123,41,.18); color: var(--high); }
+  .badge.sev-medium   { background: rgba(210,153,34,.18); color: var(--medium); }
+  .badge.sev-low      { background: rgba(63,185,80,.18);  color: var(--low); }
+  /* Alert origin: live (real logs) vs the training side (simulation / replay) */
+  .badge.mode-live       { background: rgba(63,185,80,.14);   color: var(--low); border: 1px solid var(--low); }
+  .badge.mode-simulation { background: rgba(139,148,158,.14); color: var(--muted); border: 1px solid var(--border); }
+  .badge.mode-replay     { background: rgba(188,140,255,.14); color: var(--replay); border: 1px solid var(--replay); }
+  .mode-tabs { display: flex; gap: 6px; }
+  .mode-tab {
+    background: transparent; color: var(--muted); cursor: pointer;
+    border: 1px solid var(--border); border-radius: 12px; padding: 3px 11px; font-size: 12px;
+  }
+  .mode-tab:hover { color: var(--text); }
+  .mode-tab.active { color: var(--text); border-color: var(--accent); background: #20283a; }
+  .alert .occ {
+    margin-left: auto; font-size: 12px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .alert .meta { margin-top: 6px; font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 14px; }
+  .alert .meta code { color: var(--accent); background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+  .alert .desc { margin-top: 7px; font-size: 13px; color: var(--text); }
+  .empty { color: var(--muted); text-align: center; padding: 40px 0; font-style: italic; }
+  .flash { animation: flash 1.2s ease-out; }
+  @keyframes flash { from { background: #243049; } to { background: var(--panel-2); } }
+  /* ATT&CK coverage */
+  .tech { display: flex; align-items: baseline; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; cursor: pointer; }
+  .tech:last-child { border-bottom: none; }
+  .tech:hover { background: var(--panel-2); }
+  .tech .tname { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tech:hover .tname { text-decoration: underline; }
+  .tech .rules { color: var(--muted); font-size: 12px; flex: 1; }
+  .tech .mitre { color: var(--muted); text-decoration: none; margin-left: auto; }
+  .tech .mitre:hover { color: var(--accent); }
+  .untagged { margin-top: 8px; font-size: 12px; color: var(--medium); }
+  /* SOC metrics */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .kpi { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .kpi .v { font-size: 26px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .kpi .k { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-top: 6px; }
+  .metric-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .vol { display: flex; align-items: flex-end; gap: 6px; height: 70px; }
+  .vol .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; justify-content: flex-end; }
+  .vol .col .b { width: 100%; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; }
+  .vol .col .d { font-size: 10px; color: var(--muted); white-space: nowrap; }
+  /* Triage controls on an alert card */
+  .triage { margin-top: 9px; padding-top: 9px; border-top: 1px dashed var(--border); display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .tbtn { background: var(--panel); color: var(--muted); border: 1px solid var(--border); border-radius: 5px; padding: 3px 9px; font-size: 11px; cursor: pointer; }
+  .tbtn:hover { color: var(--text); border-color: var(--accent); }
+  .tbtn.tp:hover { border-color: var(--low); color: var(--low); }
+  .tbtn.fp:hover { border-color: var(--muted); }
+  .status-pill { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; padding: 2px 7px; border-radius: 10px; border: 1px solid var(--border); color: var(--muted); }
+  .status-pill.s-new { color: var(--high); border-color: var(--high); }
+  .status-pill.s-acknowledged, .status-pill.s-in_progress { color: var(--accent); border-color: var(--accent); }
+  .status-pill.s-closed_true_positive { color: var(--low); border-color: var(--low); }
+  .status-pill.s-closed_false_positive { color: var(--muted); }
+  /* Risk-based alerting */
+  .alert.rule-risk { border-left-color: var(--replay); background: #1c1830; }
+  .badge.risk-badge { background: rgba(188,140,255,.18); color: var(--replay); border: 1px solid var(--replay); }
+  .risk-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .risk-row:last-child { border-bottom: none; }
+  .risk-row .ent { color: var(--muted); font-size: 11px; width: 64px; text-transform: lowercase; }
+  .risk-row .val { flex: 1; font-variant-numeric: tabular-nums; }
+  .risk-row .val code { color: var(--accent); background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+  .risk-track { width: 120px; height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; }
+  .risk-fill { height: 100%; background: var(--replay); border-radius: 4px; }
+  .risk-row.over .risk-fill { background: var(--critical); }
+  .risk-row .score { width: 34px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+  .risk-row.over .score { color: var(--critical); }
+  /* Investigation drawer */
+  .alert .row1 .title { cursor: pointer; }
+  .alert .row1 .title:hover { color: var(--accent); }
+  .drawer-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    display: none; z-index: 50;
+  }
+  .drawer-overlay.open { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(620px, 94vw);
+    background: var(--panel); border-left: 1px solid var(--border);
+    padding: 20px 22px; overflow-y: auto; z-index: 51;
+  }
+  .drawer h2 { margin: 0 0 4px; font-size: 16px; }
+  .drawer .close { position: absolute; top: 14px; right: 16px; cursor: pointer;
+    background: none; border: none; color: var(--muted); font-size: 22px; line-height: 1; }
+  .drawer .close:hover { color: var(--text); }
+  .drawer h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--muted); margin: 18px 0 8px; }
+  .pivot-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: var(--panel-2); border: 1px solid var(--border); border-radius: 14px;
+    padding: 4px 11px; font-size: 12px; cursor: pointer; color: var(--text); }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip .f { color: var(--muted); font-size: 10px; margin-right: 5px; }
+  .ev { background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 9px 11px; margin-bottom: 8px; font: 12px/1.5 ui-monospace, "SFMono-Regular", Menlo, monospace; }
+  .ev pre { margin: 0; white-space: pre-wrap; word-break: break-word; color: var(--text); }
+  .pivot-result { border-left: 3px solid var(--accent); padding: 6px 10px; margin-bottom: 6px;
+    background: var(--panel-2); border-radius: 0 6px 6px 0; font-size: 13px; }
+  .pivot-result .rid { color: var(--muted); font-size: 11px; }
+  /* Wide → 3 columns; medium → feed beside a single sidebar; narrow → single column. */
+  @media (max-width: 1180px) {
+    .grid { grid-template-columns: 280px minmax(0, 1fr); }
+    .col-right { grid-column: 1 / -1; }
+    .col-right.col { flex-direction: row; flex-wrap: wrap; }
+    .col-right .panel { flex: 1 1 320px; }
+  }
+  @media (max-width: 820px) {
+    .grid, .metric-cols { grid-template-columns: 1fr; }
+    .col-right.col { flex-direction: column; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    #alerts { max-height: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>mini<span class="soc">soc</span></h1>
+  <span class="sub">detection dashboard</span>
+  <span class="live"><span class="dot"></span> live · polling 3s</span>
+</header>
+
+<main>
+  <section class="panel" id="metrics-panel">
+    <h2>SOC metrics</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="v" id="kpi-total">0</div><div class="k">Total alerts</div></div>
+      <div class="kpi"><div class="v" id="kpi-open">0</div><div class="k">Open cases</div></div>
+      <div class="kpi"><div class="v" id="kpi-mttr">—</div><div class="k">MTTR</div></div>
+      <div class="kpi"><div class="v" id="kpi-fpr">—</div><div class="k">False-positive rate</div></div>
+    </div>
+    <div class="metric-cols">
+      <div>
+        <h2>Alert volume</h2>
+        <div class="vol" id="vol-chart"></div>
+      </div>
+      <div>
+        <h2>Top source IPs</h2>
+        <div class="bars" id="top-sources"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <!-- Left column: stats + scenarios -->
+    <div class="col">
+      <section class="panel" id="stats-panel">
+        <h2>Alerts</h2>
+        <div class="total"><span id="stat-total">0</span> <small>total</small></div>
+        <div class="bars" id="sev-bars"></div>
+        <h2 style="margin-top:18px">By source</h2>
+        <div class="bars" id="src-bars"></div>
+        <h2 style="margin-top:18px">By origin</h2>
+        <div class="bars" id="mode-bars"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Run a scenario</h2>
+        <div class="controls">
+          <label><input type="checkbox" id="fresh-toggle" /> fresh (clear store)</label>
+        </div>
+        <div id="scenario-list"></div>
+      </section>
+    </div>
+
+    <!-- Center column: alert feed -->
+    <div class="col">
+      <section class="panel">
+        <div class="alerts-head">
+          <h2>Alert feed <span class="sub" style="text-transform:none;letter-spacing:0">(newest first)</span></h2>
+          <div class="mode-tabs" id="mode-tabs">
+            <button class="mode-tab active" data-mode="all">all</button>
+            <button class="mode-tab" data-mode="live">live</button>
+            <button class="mode-tab" data-mode="simulation">simulation</button>
+            <button class="mode-tab" data-mode="replay">replay</button>
+          </div>
+          <button class="ghost-btn" id="refresh-btn">Refresh now</button>
+        </div>
+        <div id="alerts"></div>
+      </section>
+    </div>
+
+    <!-- Right column: risk + ATT&CK coverage -->
+    <div class="col col-right">
+      <section class="panel" id="risk-panel" style="display:none">
+        <h2>Top risk entities</h2>
+        <div id="risk-list"></div>
+      </section>
+
+      <section class="panel">
+        <h2>ATT&amp;CK coverage</h2>
+        <div id="coverage-list"></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<div class="drawer-overlay" id="drawer-overlay">
+  <aside class="drawer" id="drawer">
+    <button class="close" id="drawer-close" title="Close">&times;</button>
+    <div id="drawer-body"></div>
+  </aside>
+</div>
+
+<script>
+"use strict";
+
+const SEV_ORDER = ["critical", "high", "medium", "low"];
+const SEV_COLOR = {
+  critical: "var(--critical)", high: "var(--high)",
+  medium: "var(--medium)", low: "var(--low)", unknown: "var(--muted)",
+};
+const MODE_COLOR = {
+  live: "var(--low)", simulation: "var(--muted)", replay: "var(--replay)",
+};
+
+let lastSignature = "";  // used to flash only when the feed actually changes
+let modeFilter = "all";  // which side of the SOC the feed shows
+let latestAlerts = [];   // last fetched feed, so tab clicks re-render without refetching
+let triageByKey = {};    // composite-key -> {uid, status} so feed cards get case controls
+
+// Mirror the server's alert identity (rule_id|group_value|timestamp|mode) so a feed
+// record can find its triage row without re-hashing.
+function keyOf(a) {
+  return [a.rule_id, a.group_value, a.timestamp, a.mode].map((v) => String(v)).join("|");
+}
+
+const STATUS_LABEL = {
+  new: "new", acknowledged: "ack", in_progress: "in progress",
+  closed_true_positive: "closed · TP", closed_false_positive: "closed · FP",
+};
+
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") node.className = v;
+    else if (k === "text") node.textContent = v;
+    else node.setAttribute(k, v);
+  }
+  for (const c of [].concat(children)) node.append(c);
+  return node;
+}
+
+async function getJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(url + " -> " + r.status);
+  return r.json();
+}
+
+function renderBars(container, counts, colorFor) {
+  container.replaceChildren();
+  const entries = Object.entries(counts);
+  const max = Math.max(1, ...entries.map(([, n]) => n));
+  if (!entries.length) {
+    container.append(el("div", { class: "empty", text: "—", style: "padding:8px 0" }));
+    return;
+  }
+  for (const [label, n] of entries) {
+    const fill = el("div", { class: "bar-fill" });
+    fill.style.width = (100 * n / max) + "%";
+    fill.style.background = colorFor(label);
+    container.append(el("div", { class: "bar-row" }, [
+      el("span", { class: "label", text: label }),
+      el("div", { class: "bar-track" }, [fill]),
+      el("span", { class: "n", text: String(n) }),
+    ]));
+  }
+}
+
+function renderStats(stats) {
+  document.getElementById("stat-total").textContent = stats.total;
+  renderBars(document.getElementById("sev-bars"), stats.by_severity,
+             (l) => SEV_COLOR[l] || "var(--muted)");
+  renderBars(document.getElementById("src-bars"), stats.by_source,
+             () => "var(--accent)");
+  renderBars(document.getElementById("mode-bars"), stats.by_mode || {},
+             (l) => MODE_COLOR[l] || "var(--muted)");
+}
+
+function alertCard(a) {
+  const sev = (a.severity || "unknown").toLowerCase();
+  const mode = (a.mode || "simulation").toLowerCase();
+  const isRisk = a.rule_id === "risk-notable";
+  const card = el("div", { class: "alert sev-" + sev + (isRisk ? " rule-risk" : "") });
+
+  const title = el("span", { class: "title", text: a.rule_title || a.rule_id });
+  const triageForTitle = triageByKey[keyOf(a)];
+  if (triageForTitle) {
+    title.title = "Investigate — view raw events & pivot";
+    title.addEventListener("click", () => openInvestigation(triageForTitle.uid));
+  }
+  const row1 = el("div", { class: "row1" }, [
+    el("span", { class: "badge sev-" + sev, text: sev }),
+    el("span", { class: "badge mode-" + mode, text: mode }),
+    ...(isRisk ? [el("span", { class: "badge risk-badge", text: "risk " + (a.risk && a.risk.score || "") })] : []),
+    title,
+  ]);
+  if (a.occurrences > 1) {
+    row1.append(el("span", { class: "occ", text: a.occurrences + "× occurrences" }));
+  }
+  card.append(row1);
+
+  const meta = el("div", { class: "meta" });
+  if (a.source) meta.append(el("span", {}, ["source: ", el("code", { text: a.source })]));
+  if (a.group_value != null) meta.append(el("span", {}, ["group: ", el("code", { text: String(a.group_value) })]));
+  meta.append(el("span", {}, ["events: ", el("code", { text: String(a.match_count) })]));
+  if (a.timestamp) meta.append(el("span", { text: fmtTime(a.timestamp) }));
+  card.append(meta);
+
+  if (a.description) card.append(el("div", { class: "desc", text: a.description }));
+
+  // Triage controls: lifecycle buttons, present once the alert is in the case store.
+  const triage = triageByKey[keyOf(a)];
+  if (triage) {
+    const bar = el("div", { class: "triage" });
+    const status = (triage.status || "new");
+    bar.append(el("span", { class: "status-pill s-" + status, text: STATUS_LABEL[status] || status }));
+    const actions = [
+      ["acknowledged", "Acknowledge", ""],
+      ["in_progress", "Investigate", ""],
+      ["closed_true_positive", "Close TP", "tp"],
+      ["closed_false_positive", "Close FP", "fp"],
+    ];
+    for (const [next, label, cls] of actions) {
+      if (next === status) continue;
+      const b = el("button", { class: "tbtn " + cls, text: label });
+      b.addEventListener("click", () => setStatus(triage.uid, next, b));
+      bar.append(b);
+    }
+    card.append(bar);
+  }
+  return card;
+}
+
+async function setStatus(uid, status, btn) {
+  btn.disabled = true;
+  try {
+    await fetch("/api/triage/alerts/" + uid + "/status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    await refresh();
+  } catch (e) {
+    console.error(e);
+    btn.disabled = false;
+  }
+}
+
+function fmtTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleString();
+}
+
+function renderAlerts(alerts) {
+  latestAlerts = alerts;
+  const box = document.getElementById("alerts");
+  const signature = alerts.map((a) => a.rule_id + a.timestamp + a.occurrences).join("|");
+  const changed = signature !== lastSignature;
+  lastSignature = signature;
+
+  const shown = modeFilter === "all"
+    ? alerts
+    : alerts.filter((a) => (a.mode || "simulation") === modeFilter);
+
+  box.replaceChildren();
+  if (!shown.length) {
+    const msg = modeFilter === "all"
+      ? "No alerts yet — run a scenario to generate detections."
+      : "No " + modeFilter + " alerts" +
+        (modeFilter === "live" ? " — start `minisoc watch` to monitor real logs." : ".");
+    box.append(el("div", { class: "empty", text: msg }));
+    return;
+  }
+  shown.forEach((a) => {
+    const card = alertCard(a);
+    if (changed) card.classList.add("flash");
+    box.append(card);
+  });
+}
+
+function fmtDuration(seconds) {
+  if (seconds == null) return "—";
+  if (seconds < 90) return Math.round(seconds) + "s";
+  if (seconds < 5400) return Math.round(seconds / 60) + "m";
+  return (seconds / 3600).toFixed(1) + "h";
+}
+
+function renderMetrics(metrics, total, openCount) {
+  document.getElementById("kpi-total").textContent = total;
+  document.getElementById("kpi-open").textContent = openCount;
+  document.getElementById("kpi-mttr").textContent = fmtDuration(metrics.mttr_seconds);
+  document.getElementById("kpi-fpr").textContent =
+    metrics.resolved ? Math.round(metrics.false_positive_rate * 100) + "%" : "—";
+
+  const vol = document.getElementById("vol-chart");
+  vol.replaceChildren();
+  const max = Math.max(1, ...metrics.volume.map((v) => v.count));
+  if (!metrics.volume.length) {
+    vol.append(el("div", { class: "empty", text: "—", style: "padding:8px 0" }));
+  }
+  for (const v of metrics.volume) {
+    const bar = el("div", { class: "b" });
+    bar.style.height = (100 * v.count / max) + "%";
+    bar.title = v.bucket + ": " + v.count;
+    vol.append(el("div", { class: "col" }, [
+      bar, el("div", { class: "d", text: v.bucket.slice(5) }),
+    ]));
+  }
+
+  const sources = {};
+  for (const s of metrics.top_sources) sources[s.ip] = s.count;
+  renderBars(document.getElementById("top-sources"), sources, () => "var(--accent)");
+}
+
+function renderRisk(board) {
+  const panel = document.getElementById("risk-panel");
+  const list = document.getElementById("risk-list");
+  if (!board.enabled || !board.entities.length) { panel.style.display = "none"; return; }
+  panel.style.display = "";
+  list.replaceChildren();
+  const max = Math.max(board.threshold, ...board.entities.map((e) => e.score));
+  for (const e of board.entities) {
+    const fill = el("div", { class: "risk-fill" });
+    fill.style.width = (100 * e.score / max) + "%";
+    const row = el("div", { class: "risk-row" + (e.over_threshold ? " over" : "") }, [
+      el("span", { class: "ent", text: e.entity.replace(".", " ") }),
+      el("span", { class: "val" }, [el("code", { text: e.value })]),
+      el("div", { class: "risk-track" }, [fill]),
+      el("span", { class: "score", text: String(e.score) }),
+    ]);
+    row.title = e.signals + " signal(s); threshold " + board.threshold +
+                (e.over_threshold ? " — exceeded (risk notable raised)" : "");
+    list.append(row);
+  }
+}
+
+async function refresh() {
+  try {
+    const [alerts, stats, metrics, triageAlerts, triageStats, risk] = await Promise.all([
+      getJSON("/api/alerts"),
+      getJSON("/api/stats"),
+      getJSON("/api/metrics"),
+      getJSON("/api/triage/alerts"),
+      getJSON("/api/triage/stats"),
+      getJSON("/api/risk"),
+    ]);
+    triageByKey = {};
+    for (const t of triageAlerts) triageByKey[keyOf(t)] = { uid: t.uid, status: t.status };
+    renderStats(stats);
+    renderMetrics(metrics, stats.total, triageStats.open || 0);
+    renderRisk(risk);
+    renderAlerts(alerts);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function loadScenarios() {
+  const list = document.getElementById("scenario-list");
+  const scenarios = await getJSON("/api/scenarios");
+  list.replaceChildren();
+  for (const s of scenarios) {
+    const btn = el("button", { class: "scenario-btn" }, [
+      el("span", { text: s.name }),
+      el("span", { class: "src", text: s.source }),
+    ]);
+    btn.addEventListener("click", () => runScenario(s.name, btn));
+    list.append(btn);
+  }
+}
+
+async function runScenario(name, btn) {
+  const fresh = document.getElementById("fresh-toggle").checked;
+  btn.disabled = true;
+  const original = btn.firstChild.textContent;
+  btn.firstChild.textContent = "running…";
+  try {
+    await fetch("/api/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scenario: name, fresh }),
+    });
+    await refresh();
+  } catch (e) {
+    console.error(e);
+  } finally {
+    btn.firstChild.textContent = original;
+    btn.disabled = false;
+  }
+}
+
+async function loadCoverage() {
+  const list = document.getElementById("coverage-list");
+  const data = await getJSON("/api/coverage");
+  list.replaceChildren();
+  for (const t of data.techniques) {
+    const ids = t.rules.map((r) => r.id).join(", ");
+    // The whole row opens an in-dashboard detail drawer; the ↗ still deep-links to MITRE.
+    const row = el("div", { class: "tech" }, [
+      el("span", { class: "tname", text: t.technique }),
+      el("span", { class: "rules", text: ids }),
+      el("a", { class: "mitre", href: t.url, target: "_blank", rel: "noopener", text: "↗", title: "Open on attack.mitre.org" }),
+    ]);
+    row.title = "View covering rules & matching alerts";
+    row.addEventListener("click", (e) => {
+      if (e.target.classList.contains("mitre")) return;  // let the MITRE link do its thing
+      openTechnique(t);
+    });
+    list.append(row);
+  }
+  if (data.untagged.length) {
+    list.append(el("div", { class: "untagged", text: "untagged: " + data.untagged.join(", ") }));
+  }
+}
+
+// Clicking a technique: show what covers it and which current alerts map to it.
+function openTechnique(t) {
+  const overlay = document.getElementById("drawer-overlay");
+  const body = document.getElementById("drawer-body");
+  overlay.classList.add("open");
+  body.replaceChildren();
+  body.append(el("h2", { text: t.technique }));
+  body.append(el("div", { class: "meta" }, [
+    el("a", { href: t.url, target: "_blank", rel: "noopener", text: "View on attack.mitre.org ↗" }),
+  ]));
+
+  body.append(el("h3", { text: "Rules covering this technique (" + t.rules.length + ")" }));
+  for (const r of t.rules) {
+    body.append(el("div", { class: "pivot-result" }, [
+      el("div", { text: r.title || r.id }),
+      el("div", { class: "rid", text: r.id + " · " + (r.severity || "") }),
+    ]));
+  }
+
+  // Alerts currently in the feed that fired one of these rules.
+  const ruleIds = new Set(t.rules.map((r) => r.id));
+  const hits = latestAlerts.filter((a) => ruleIds.has(a.rule_id));
+  body.append(el("h3", { text: "Matching alerts (" + hits.length + ")" }));
+  if (!hits.length) {
+    body.append(el("div", { class: "empty", text: "No alerts for this technique yet — run a scenario that exercises it." }));
+  }
+  for (const a of hits) {
+    const row = el("div", { class: "pivot-result" }, [
+      el("div", { text: a.rule_title || a.rule_id }),
+      el("div", { class: "rid", text: (a.mode || "") + " · " + fmtTime(a.timestamp) }),
+    ]);
+    const tr = triageByKey[keyOf(a)];
+    if (tr) {
+      row.style.cursor = "pointer";
+      row.addEventListener("click", () => openInvestigation(tr.uid));
+    }
+    body.append(row);
+  }
+}
+
+// -- Investigation / pivot view --------------------------------------------------------
+
+function summarizeEvent(ev) {
+  // Flatten the nested ECS event back to compact "a.b.c = v" lines for display.
+  const lines = [];
+  (function walk(obj, prefix) {
+    for (const [k, v] of Object.entries(obj)) {
+      const path = prefix ? prefix + "." + k : k;
+      if (v && typeof v === "object" && !Array.isArray(v)) walk(v, path);
+      else lines.push(path + " = " + v);
+    }
+  })(ev, "");
+  return lines.join("\n");
+}
+
+async function openInvestigation(uid) {
+  const overlay = document.getElementById("drawer-overlay");
+  const body = document.getElementById("drawer-body");
+  overlay.classList.add("open");
+  body.replaceChildren(el("div", { class: "empty", text: "Loading…" }));
+  try {
+    const a = await getJSON("/api/triage/alerts/" + uid);
+    body.replaceChildren();
+    body.append(el("h2", { text: a.rule_title || a.rule_id }));
+    body.append(el("div", { class: "meta" }, [
+      el("span", {}, ["rule: ", el("code", { text: a.rule_id })]),
+      el("span", {}, ["status: ", el("code", { text: a.status })]),
+      a.group_value != null ? el("span", {}, ["group: ", el("code", { text: String(a.group_value) })]) : "",
+    ]));
+
+    // Risk breakdown — for a risk notable, show the signals that stacked into it.
+    const risk = (a.data && a.data.risk) || a.risk;
+    if (risk && risk.contributors && risk.contributors.length) {
+      body.append(el("h3", { text: "Risk breakdown — score " + risk.score + " / threshold " + risk.threshold }));
+      for (const c of risk.contributors) {
+        body.append(el("div", { class: "pivot-result" }, [
+          el("div", { text: c.rule_id }),
+          el("div", { class: "rid", text: c.severity + " · +" + c.score + " risk" }),
+        ]));
+      }
+    }
+
+    // Pivot chips — click an entity to find every related detection.
+    if ((a.pivots || []).length) {
+      body.append(el("h3", { text: "Pivot on entity" }));
+      const chips = el("div", { class: "pivot-chips" });
+      for (const p of a.pivots) {
+        const chip = el("span", { class: "chip" }, [
+          el("span", { class: "f", text: p.field }), document.createTextNode(p.value),
+        ]);
+        chip.addEventListener("click", () => runPivot(p.field, p.value));
+        chips.append(chip);
+      }
+      body.append(chips);
+    }
+
+    body.append(el("h3", { text: "Triggering events (" + (a.events || []).length + ")" }));
+    if (!(a.events || []).length) {
+      body.append(el("div", { class: "empty", text: "No raw events stored for this alert." }));
+    }
+    for (const ev of a.events || []) {
+      body.append(el("div", { class: "ev" }, [el("pre", { text: summarizeEvent(ev) })]));
+    }
+
+    body.append(el("div", { id: "pivot-results" }));
+  } catch (e) {
+    console.error(e);
+    body.replaceChildren(el("div", { class: "empty", text: "Failed to load investigation." }));
+  }
+}
+
+async function runPivot(field, value) {
+  const target = document.getElementById("pivot-results");
+  target.replaceChildren(el("h3", { text: "Related to " + field + " = " + value + " …" }));
+  try {
+    const data = await getJSON("/api/pivot?field=" + encodeURIComponent(field) + "&value=" + encodeURIComponent(value));
+    target.replaceChildren(el("h3", { text: data.count + " alert(s) involving " + field + " = " + value }));
+    for (const m of data.matches) {
+      const row = el("div", { class: "pivot-result" }, [
+        el("div", { text: m.rule_title || m.rule_id }),
+        el("div", { class: "rid", text: m.rule_id + " · " + (m.mode || "") + " · " + fmtTime(m.timestamp) }),
+      ]);
+      row.style.cursor = "pointer";
+      row.addEventListener("click", () => openInvestigation(m.uid));
+      target.append(row);
+    }
+  } catch (e) {
+    console.error(e);
+    target.replaceChildren(el("div", { class: "empty", text: "Pivot failed." }));
+  }
+}
+
+function closeDrawer() {
+  document.getElementById("drawer-overlay").classList.remove("open");
+}
+document.getElementById("drawer-close").addEventListener("click", closeDrawer);
+document.getElementById("drawer-overlay").addEventListener("click", (e) => {
+  if (e.target.id === "drawer-overlay") closeDrawer();
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
+
+document.getElementById("refresh-btn").addEventListener("click", refresh);
+
+for (const tab of document.querySelectorAll("#mode-tabs .mode-tab")) {
+  tab.addEventListener("click", () => {
+    modeFilter = tab.dataset.mode;
+    document.querySelectorAll("#mode-tabs .mode-tab")
+      .forEach((t) => t.classList.toggle("active", t === tab));
+    renderAlerts(latestAlerts);
+  });
+}
+
+loadScenarios();
+loadCoverage();
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>

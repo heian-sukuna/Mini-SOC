@@ -1,0 +1,4 @@
+name: port-scan-sysmon
+label: attack
+scenario: port-scan
+expects: [port-scan-001]

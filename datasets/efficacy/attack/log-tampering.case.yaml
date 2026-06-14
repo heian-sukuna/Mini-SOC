@@ -1,0 +1,4 @@
+name: log-tampering
+label: attack
+scenario: log-tampering
+expects: [log-tampering-001]

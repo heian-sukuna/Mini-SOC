@@ -1,0 +1,22 @@
+title: Port Scan
+id: port-scan-001
+status: experimental
+description: >-
+  Detects a single source host opening an unusually high number of network connections
+  in a short window (15+ within 1 minute), the signature of a port/service scan.
+references:
+  - https://attack.mitre.org/techniques/T1046/
+author: minisoc
+level: medium
+logsource:
+  category: network
+detection:
+  selection:
+    event.action: network_connection
+  timeframe: 1m
+  condition: selection | count() by source.ip >= 15
+falsepositives:
+  - Busy reverse proxies, load balancers, or monitoring agents making many connections.
+tags:
+  - attack.discovery
+  - attack.t1046

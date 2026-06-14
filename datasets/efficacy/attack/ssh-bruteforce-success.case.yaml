@@ -1,0 +1,4 @@
+name: ssh-bruteforce-success
+label: attack
+scenario: ssh-bruteforce-success
+expects: [ssh-bruteforce-001, ssh-bruteforce-success-001]

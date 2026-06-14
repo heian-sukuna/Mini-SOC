@@ -1,0 +1,18 @@
+title: Network Connection to Common C2 Port
+id: sigma-net-c2-port
+status: experimental
+description: A network connection to a port commonly used by C2 frameworks (e.g. 4444).
+logsource:
+  category: network_connection
+  product: windows
+detection:
+  selection:
+    EventID: 3
+    DestinationPort:
+      - 4444
+      - 1337
+  condition: selection
+level: high
+tags:
+  - attack.t1571
+  - attack.command_and_control

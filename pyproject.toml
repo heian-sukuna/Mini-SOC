@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minisoc"
+version = "0.1.0"
+description = "A lightweight, self-contained SIEM-style detection lab (blue-team portfolio project)."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "minisoc" }]
+keywords = ["siem", "sigma", "detection", "blue-team", "security"]
+
+# Runtime dependencies are kept deliberately minimal (standard library first).
+#   pyyaml           -> load Sigma-subset rules and config.yaml
+#   rich             -> pretty CLI alert output
+#   fastapi/uvicorn  -> the dashboard (`minisoc serve`)
+dependencies = [
+  "pyyaml>=6.0",
+  "rich>=13.0",
+  "fastapi>=0.110",
+  "uvicorn>=0.27",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+minisoc = "minisoc.cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["minisoc*"]
+
+[tool.setuptools.package-data]
+"minisoc" = ["py.typed"]
+"minisoc.detections" = ["rules/*.yml", "rules/*.yaml"]
+"minisoc.dashboard" = ["static/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

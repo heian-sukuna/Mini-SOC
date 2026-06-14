@@ -1,0 +1,20 @@
+name: normal-auth
+label: benign
+source: auth.log
+year: 2026
+# A normal workday on a Linux host: successful key/password logins, the odd fat-fingered
+# password (well under the brute-force threshold), and routine sudo that escalates to root
+# but only runs ordinary admin commands (no shell / no account or permission changes).
+lines: |
+  Jun 12 08:01:11 web01 sshd[2101]: Accepted publickey for alice from 10.0.0.8 port 51022 ssh2
+  Jun 12 08:14:39 web01 sshd[2140]: Accepted password for bob from 10.0.0.9 port 51190 ssh2
+  Jun 12 08:15:02 web01 sshd[2141]: Failed password for bob from 10.0.0.9 port 51191 ssh2
+  Jun 12 08:15:08 web01 sshd[2142]: Accepted password for bob from 10.0.0.9 port 51192 ssh2
+  Jun 12 09:02:55 web01 sudo:   alice : TTY=pts/0 ; PWD=/home/alice ; USER=root ; COMMAND=/usr/bin/apt update
+  Jun 12 09:03:10 web01 sudo:   alice : TTY=pts/0 ; PWD=/home/alice ; USER=root ; COMMAND=/usr/bin/systemctl restart nginx
+  Jun 12 09:47:21 web01 sshd[2390]: Accepted publickey for deploy from 10.0.0.12 port 40222 ssh2
+  Jun 12 10:31:44 web01 sshd[2501]: Failed password for invalid user test from 10.0.0.50 port 49888 ssh2
+  Jun 12 11:18:03 web01 sudo:   bob : TTY=pts/1 ; PWD=/var/www ; USER=root ; COMMAND=/usr/bin/tail -n 100 /var/log/nginx/error.log
+  Jun 12 12:05:37 web01 sshd[2799]: Accepted password for alice from 10.0.0.8 port 51500 ssh2
+  Jun 12 13:22:09 web01 sshd[3001]: Accepted publickey for backup from 10.0.0.40 port 33550 ssh2
+  Jun 12 14:09:50 web01 sudo:   deploy : TTY=pts/2 ; PWD=/srv/app ; USER=root ; COMMAND=/usr/bin/git pull

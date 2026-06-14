@@ -1,0 +1,11 @@
+name: impossible-travel
+label: attack
+source: auth.log
+year: 2026
+# The same account authenticates successfully from Russia and then Germany ~20 minutes
+# apart — physically impossible travel, the classic account-compromise signal. The GeoIP
+# enricher stamps the country on each login; the behavioral detector flags the disagreement.
+lines: |
+  Jun 12 08:00:05 web01 sshd[4101]: Accepted password for alice from 45.155.205.7 port 52001 ssh2
+  Jun 12 08:21:40 web01 sshd[4180]: Accepted password for alice from 185.220.101.5 port 47330 ssh2
+expects: [impossible-travel-001]

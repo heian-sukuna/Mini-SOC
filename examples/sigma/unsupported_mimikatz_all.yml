@@ -1,0 +1,19 @@
+title: Mimikatz Command Line (uses |all — unsupported)
+id: sigma-mimikatz-all
+status: experimental
+description: >
+  A realistic Sigma rule that minisoc CANNOT import: it chains the value modifier
+  `contains|all`, which the engine's subset does not implement. Kept here on purpose so
+  the import report has a real skip to show.
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    CommandLine|contains|all:
+      - 'sekurlsa'
+      - 'logonpasswords'
+  condition: selection
+level: critical
+tags:
+  - attack.t1003.001

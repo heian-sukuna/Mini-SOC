@@ -1,0 +1,4 @@
+name: ssh-bruteforce
+label: attack
+scenario: ssh-bruteforce
+expects: [ssh-bruteforce-001]

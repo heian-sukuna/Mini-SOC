@@ -1,0 +1,19 @@
+name: normal-web
+label: benign
+source: access.log
+# Ordinary site traffic: page views, API calls, static assets, a login POST, a search with
+# innocuous terms. Note /images/logo.png touches an "upload-ish" directory but isn't a
+# server-side script, and the search query carries no SQL tokens — both must stay silent.
+lines: |
+  203.0.113.10 - - [12/Jun/2026:08:00:01 +0000] "GET / HTTP/1.1" 200 5320 "-" "Mozilla/5.0"
+  203.0.113.10 - - [12/Jun/2026:08:00:03 +0000] "GET /index.html HTTP/1.1" 200 5320 "-" "Mozilla/5.0"
+  203.0.113.11 - - [12/Jun/2026:08:01:10 +0000] "GET /images/logo.png HTTP/1.1" 200 18044 "https://site/" "Mozilla/5.0"
+  203.0.113.11 - - [12/Jun/2026:08:01:12 +0000] "GET /css/app.css HTTP/1.1" 200 8123 "https://site/" "Mozilla/5.0"
+  203.0.113.12 - - [12/Jun/2026:08:02:40 +0000] "GET /api/products?category=books&page=2 HTTP/1.1" 200 2210 "-" "curl/8.4"
+  203.0.113.12 - - [12/Jun/2026:08:02:45 +0000] "POST /api/login HTTP/1.1" 200 64 "-" "curl/8.4"
+  203.0.113.13 - - [12/Jun/2026:08:05:18 +0000] "GET /search?q=select+a+good+book HTTP/1.1" 200 1540 "-" "Mozilla/5.0"
+  203.0.113.13 - - [12/Jun/2026:08:05:33 +0000] "GET /articles/2026/summer-reading HTTP/1.1" 200 7720 "-" "Mozilla/5.0"
+  203.0.113.14 - - [12/Jun/2026:08:09:02 +0000] "GET /favicon.ico HTTP/1.1" 200 1150 "-" "Mozilla/5.0"
+  203.0.113.14 - - [12/Jun/2026:08:09:50 +0000] "GET /api/cart HTTP/1.1" 200 330 "-" "app/2.1"
+  203.0.113.15 - - [12/Jun/2026:08:12:31 +0000] "POST /api/checkout HTTP/1.1" 201 540 "-" "app/2.1"
+  203.0.113.10 - - [12/Jun/2026:08:14:07 +0000] "GET /about HTTP/1.1" 200 4100 "-" "Mozilla/5.0"

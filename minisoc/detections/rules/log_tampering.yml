@@ -1,0 +1,36 @@
+title: Log Clearing / Tampering
+id: log-tampering-001
+status: experimental
+description: >-
+  Detects process executions that clear or destroy logs — Windows event-log clearing
+  (wevtutil/Clear-EventLog/auditpol) or Linux log deletion/truncation — a classic
+  defense-evasion / anti-forensics action.
+references:
+  - https://attack.mitre.org/techniques/T1070/001/
+author: minisoc
+level: high
+logsource:
+  category: process
+detection:
+  selection:
+    event.action: process_create
+    process.command_line|contains:
+      - "wevtutil cl"
+      - "wevtutil clear-log"
+      - "Clear-EventLog"
+      - "Remove-EventLog"
+      - "auditpol /clear"
+      - "rm /var/log"
+      - "rm -rf /var/log"
+      - "rm -f /var/log"
+      - "shred "
+      - "truncate -s 0 /var/log"
+      - "journalctl --vacuum"
+      - ": > /var/log"
+      - "echo > /var/log"
+  condition: selection
+falsepositives:
+  - Legitimate log-rotation or maintenance scripts (should be allow-listed).
+tags:
+  - attack.defense_evasion
+  - attack.t1070.001

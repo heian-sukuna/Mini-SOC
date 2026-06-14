@@ -1,0 +1,34 @@
+title: SQL Injection Attempt
+id: sqli-attempt-001
+status: experimental
+description: >-
+  Detects common SQL-injection tokens in a web request URL (boolean tautologies, UNION
+  SELECT, comment markers, schema probing, time-based payloads).
+references:
+  - https://attack.mitre.org/techniques/T1190/
+author: minisoc
+level: high
+logsource:
+  category: web
+detection:
+  selection:
+    url.original|contains:
+      - "' or "
+      - "' or '"
+      - " or 1=1"
+      - "'='"
+      - "union select"
+      - "union all select"
+      - "' --"
+      - "'--"
+      - "/*"
+      - "information_schema"
+      - "sleep("
+      - "waitfor delay"
+      - "benchmark("
+  condition: selection
+falsepositives:
+  - Search queries that legitimately contain SQL-like keywords (uncommon).
+tags:
+  - attack.initial_access
+  - attack.t1190

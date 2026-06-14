@@ -1,0 +1,12 @@
+name: normal-sysmon
+label: benign
+source: sysmon
+# Everyday endpoint process activity: a login script, an admin running PowerShell, a build
+# step, a browser launch. None clear or destroy logs, so log-tampering must stay silent.
+lines: |
+  {"EventID": 1, "UtcTime": "2026-06-12 08:00:01.100", "Computer": "WIN-WS01", "User": "CORP\\alice", "ProcessId": 4120, "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "CommandLine": "powershell.exe -File C:\\scripts\\login.ps1", "ParentImage": "C:\\Windows\\explorer.exe"}
+  {"EventID": 1, "UtcTime": "2026-06-12 08:03:22.400", "Computer": "WIN-WS01", "User": "CORP\\alice", "ProcessId": 4330, "Image": "C:\\Program Files\\Git\\bin\\git.exe", "CommandLine": "git pull origin main", "ParentImage": "C:\\Windows\\System32\\cmd.exe"}
+  {"EventID": 1, "UtcTime": "2026-06-12 08:10:09.000", "Computer": "WIN-WS01", "User": "CORP\\alice", "ProcessId": 4501, "Image": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", "CommandLine": "chrome.exe --profile-directory=Default", "ParentImage": "C:\\Windows\\explorer.exe"}
+  {"EventID": 1, "UtcTime": "2026-06-12 09:18:45.250", "Computer": "WIN-DC01", "User": "CORP\\admin", "ProcessId": 6120, "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "CommandLine": "powershell.exe Get-Service -Name Spooler", "ParentImage": "C:\\Windows\\System32\\cmd.exe"}
+  {"EventID": 1, "UtcTime": "2026-06-12 09:41:02.700", "Computer": "WIN-DC01", "User": "CORP\\admin", "ProcessId": 6200, "Image": "C:\\Windows\\System32\\dsa.msc", "CommandLine": "mmc.exe dsa.msc", "ParentImage": "C:\\Windows\\explorer.exe"}
+  {"EventID": 1, "UtcTime": "2026-06-12 10:05:31.900", "Computer": "WIN-WS02", "User": "CORP\\bob", "ProcessId": 7100, "Image": "C:\\Windows\\System32\\cmd.exe", "CommandLine": "cmd.exe /c dir C:\\Users\\bob\\Documents", "ParentImage": "C:\\Windows\\explorer.exe"}

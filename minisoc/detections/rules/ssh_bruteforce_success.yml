@@ -1,0 +1,33 @@
+title: SSH Brute Force Followed by Successful Login
+id: ssh-bruteforce-success-001
+status: experimental
+description: >-
+  Critical escalation: a source IP crossed the SSH brute-force threshold and then
+  authenticated successfully within the timespan — the brute force likely worked and
+  the host should be treated as compromised.
+references:
+  - https://attack.mitre.org/techniques/T1110/
+  - https://attack.mitre.org/techniques/T1078/
+author: minisoc
+level: critical
+correlation:
+  type: temporal_ordered
+  rules:
+    - ssh-bruteforce-001
+    - ssh-login-success-001
+  group-by:
+    - source.ip
+  timespan: 5m
+  # Spec default suppresses ALL referenced rules; minisoc also accepts a list of rule
+  # ids that keep alerting independently. The brute-force rule stays a standalone alert;
+  # the match-only success rule stays silent.
+  generate:
+    - ssh-bruteforce-001
+falsepositives:
+  - An admin legitimately logging in from an IP that previously had failed attempts
+    (e.g. a fixed fat-fingered password) — rare within a 5 minute window.
+tags:
+  - attack.credential_access
+  - attack.t1110
+  - attack.initial_access
+  - attack.t1078

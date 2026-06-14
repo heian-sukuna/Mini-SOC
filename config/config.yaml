@@ -1,0 +1,88 @@
+# minisoc default configuration.
+# All paths are resolved relative to the repo root unless absolute.
+
+# Where scenario generators write log files, and where parsers read them.
+paths:
+  generated_dir: data/generated
+  auth_log: data/generated/auth.log
+  access_log: data/generated/access.log
+  sysmon_log: data/generated/sysmon.json
+  firewall_log: data/generated/firewall.log
+  alerts_jsonl: data/generated/alerts.jsonl   # used by alerting sinks in a later phase
+
+# Detection rules directory (Sigma-subset YAML). Defaults to the packaged rules
+# if this path does not exist.
+rules_dir: minisoc/detections/rules
+
+# Default sliding window used by aggregation rules that do not specify their own
+# `timeframe`. Format: <int><unit> where unit is s, m, h, or d.
+alert_window: 5m
+
+# Which log sources / parsers are enabled.
+enabled_sources:
+  - auth.log
+  - access.log
+  - sysmon
+  - firewall
+
+# Enrichment layer: context added to every event *before* detection, so rules and
+# behavioral detections see threat-intel/geo/asset fields and alerts read richer.
+# Set enabled: false to turn the whole layer off; drop any path to skip that source.
+enrichment:
+  enabled: true
+  blocklist: config/intel/blocklist.txt   # known-bad IPs/CIDRs -> threat.matched
+  geoip: config/intel/geoip.csv           # offline country/ASN -> source.geo.*, source.as.*
+  assets: config/intel/assets.yaml        # IP->asset (trusted?) and user->role
+
+# Triage / case management: a queryable SQLite store holding alert lifecycle, analyst
+# notes, and incidents. Synced from the JSONL store; driven by `minisoc triage` and the
+# dashboard. Defaults to <generated_dir>/triage.db if unset.
+triage:
+  db: data/generated/triage.db
+
+# Risk-based alerting (RBA): instead of paging on every detection, accumulate a risk
+# score per entity (source IP / user / host) across signals, and raise a single
+# high-fidelity "risk-notable" alert when an entity crosses `threshold` within `window`.
+# Scores derive from each rule's severity (a rule may override with `risk_score:`).
+risk:
+  enabled: true
+  threshold: 100        # cumulative risk that makes an entity notable
+  window: 24h           # sliding window over which risk accumulates
+  objects:              # entities risk is tracked against
+    - source.ip
+    - user.name
+    - host.name
+
+# Dashboard: optional HTTP Basic auth on the JSON API. Leave unset for an open local
+# dashboard; set user+password before exposing `minisoc serve` beyond localhost.
+dashboard:
+  auth:
+    user: ""            # e.g. "analyst"
+    password: ""        # e.g. a strong secret
+
+# Notifications: push alerts off the box when they fire (live mode and `run`). Each
+# channel only activates when its destination is set, and only fires at/above
+# min_severity. Delivery is fail-safe — an unreachable server never breaks detection.
+notifications:
+  ntfy:
+    server: http://127.0.0.1:8091   # your self-hosted ntfy (in the docker stack)
+    topic: minisoc-alerts           # subscribe in the ntfy app to get phone pushes
+    min_severity: high
+  webhook:
+    url: ""                         # a Slack/Discord/Mattermost incoming-webhook URL
+    min_severity: critical
+
+# Live mode (`minisoc watch`): tail real log files and run detections continuously.
+# Each source is a path plus the parser to use ("auth.log", "access.log", "sysmon");
+# omit `source` to auto-detect from the file's first line. Some paths need elevated
+# permissions to read (e.g. /var/log/nginx/access.log) — run via sudo or adjust
+# group permissions. On journald-only systems (Arch/CachyOS), export a stream to a
+# file first:  journalctl -u sshd -f --no-hostname -o short > /tmp/auth-live.log &
+live:
+  poll_interval: 2
+  sources: []
+  # sources:
+  #   - path: /var/log/nginx/access.log
+  #     source: access.log
+  #   - path: /tmp/auth-live.log
+  #     source: auth.log

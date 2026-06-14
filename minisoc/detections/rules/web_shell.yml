@@ -1,0 +1,28 @@
+title: Web Shell Access
+id: web-shell-001
+status: experimental
+description: >-
+  Detects a request to a server-side script (.php/.jsp/.asp/.aspx/.phtml) located in a
+  user-writable upload directory — the signature of accessing a planted web shell.
+references:
+  - https://attack.mitre.org/techniques/T1505/003/
+author: minisoc
+level: high
+logsource:
+  category: web
+detection:
+  selection:
+    url.original|contains:
+      - /uploads/
+      - /upload/
+      - /files/
+      - /images/
+      - /tmp/
+      - /media/
+    url.original|re: '\.(php|phtml|jsp|jspx|asp|aspx)(\?|$)'
+  condition: selection
+falsepositives:
+  - Legitimate dynamic scripts served from a directory that merely shares one of these names.
+tags:
+  - attack.persistence
+  - attack.t1505.003

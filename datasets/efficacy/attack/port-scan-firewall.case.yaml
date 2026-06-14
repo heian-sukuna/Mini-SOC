@@ -1,0 +1,4 @@
+name: port-scan-firewall
+label: attack
+scenario: firewall-port-scan
+expects: [port-scan-001]
