@@ -113,8 +113,11 @@ def test_pipeline_emits_risk_notable_for_multi_signal_attacker(tmp_path):
     scanner = "45.155.205.7"
     start = datetime(2026, 6, 12, 10, 0, 0)
     fw = list(parse_firewall(network_attacks.generate_port_scan(start=start)))
+    # Align the SSH attack with the port scan so all signals land in one risk window;
+    # otherwise the two scenarios use different time bases and never correlate.
     ssh = list(parse_auth_log(
-        [l.replace("192.0.2.66", scanner) for l in ssh_bruteforce.generate_with_success()],
+        [l.replace("192.0.2.66", scanner)
+         for l in ssh_bruteforce.generate_with_success(start=start)],
         year=2026,
     ))
     alerts = pipeline.run_events(fw + ssh)

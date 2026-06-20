@@ -91,10 +91,22 @@ def generate(
         )
 
 
-def generate_with_success() -> Iterator[str]:
+def generate_with_success(
+    *,
+    attempts: int = 8,
+    start: datetime | None = None,
+    interval_seconds: int = 20,
+) -> Iterator[str]:
     """The ``ssh-bruteforce-success`` scenario: the brute force that got in.
 
     Identical to :func:`generate` but ends with one successful login from the attacker
-    IP, which fires the *SSH Brute Force Followed by Successful Login* correlation.
+    IP, which fires the *SSH Brute Force Followed by Successful Login* correlation. The
+    timing arguments are forwarded so callers can align this scenario with others on a
+    shared timeline (e.g. correlating it with a port scan inside one risk window).
     """
-    return generate(succeed_after=True)
+    return generate(
+        attempts=attempts,
+        start=start,
+        interval_seconds=interval_seconds,
+        succeed_after=True,
+    )

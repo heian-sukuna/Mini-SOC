@@ -1,4 +1,4 @@
-# minisoc
+# minisoc Still work in progress
 
 A lightweight, **self-contained SIEM-style detection lab** — a blue-team portfolio
 project. Raw logs → normalization → a Sigma-compatible detection engine → alerting → a
@@ -48,7 +48,10 @@ data/generated/ scenario output + the JSONL alert store land here
 
 ## Install
 
-Requires Python 3.12+ (Arch/CachyOS: `python` is 3.12+).
+Requires Python 3.12+ (Arch/CachyOS: `python` is 3.12+; Kali/Debian/Ubuntu ship
+3.13). On Debian-based systems (Kali, Ubuntu) the stdlib `venv` support lives in a
+separate `python3-venv` package — the quick-install script installs it for you; for
+a manual install see the note below.
 
 ### Quick install (recommended)
 
@@ -79,9 +82,14 @@ If you'd rather set it up by hand:
 
 ```bash
 git clone <repo> Mini-SOC && cd Mini-SOC
+# Debian/Kali/Ubuntu only: install venv support first (matches your Python version)
+#   sudo apt install python3-venv        # or e.g. python3.13-venv
 python -m venv .venv && source .venv/bin/activate    # fish: source .venv/bin/activate.fish
 pip install -e ".[dev]"
 ```
+
+On Debian-based systems `python -m venv` fails with *"ensurepip is not available"*
+until `python3-venv` is installed; the `./install.sh` path handles this automatically.
 
 Either path installs the `minisoc` console command inside the venv.
 
